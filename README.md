@@ -2,7 +2,7 @@
 
 > Set up Nginx reverse proxy or Cloudflare Workers for Crazyrouter API.
 
-[Crazyrouter](https://crazyrouter.com?ref=github) — One API key, 300+ AI models, 45% cheaper.
+[Crazyrouter](https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community?ref=github) — One API key, 300+ AI models, 45% cheaper.
 
 ## Why Proxy?
 
@@ -23,7 +23,7 @@ server {
     ssl_certificate_key /etc/ssl/private/yourdomain.key;
 
     location / {
-        proxy_pass https://crazyrouter.com;
+        proxy_pass https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community;
         proxy_set_header Host crazyrouter.com;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -48,7 +48,7 @@ server {
 
     location / {
         limit_req zone=api burst=10 nodelay;
-        proxy_pass https://crazyrouter.com;
+        proxy_pass https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community;
         proxy_set_header Host crazyrouter.com;
         proxy_buffering off;
     }
@@ -62,7 +62,7 @@ location / {
     allow 192.168.0.0/16;
     deny all;
 
-    proxy_pass https://crazyrouter.com;
+    proxy_pass https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community;
     proxy_set_header Host crazyrouter.com;
     proxy_buffering off;
 }
@@ -130,7 +130,7 @@ A: No, you can use Crazyrouter directly. Proxy is optional for custom domains or
 A: Yes, make sure `proxy_buffering off` is set in Nginx.
 
 ## 🔗 Links
-- 🌐 [Crazyrouter](https://crazyrouter.com?ref=github)
+- 🌐 [Crazyrouter](https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community?ref=github)
 - 💬 [Telegram](https://t.me/crzrouter)
 
 ## 📄 License
