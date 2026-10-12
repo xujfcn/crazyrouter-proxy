@@ -2,14 +2,14 @@
 
 > Set up Nginx reverse proxy or Cloudflare Workers for Crazyrouter API.
 
-[Crazyrouter](https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community?ref=github) — One API key, 300+ AI models, 45% cheaper.
+[Crazyrouter](https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community) — One API key, model-specific API access.
 
 ## Why Proxy?
 
 - **Custom domain**: Use your own domain (e.g., `ai-api.yourdomain.com`)
 - **Access control**: Add IP whitelisting, rate limiting
 - **Logging**: Monitor API usage at the proxy level
-- **Compliance**: Keep API traffic within your infrastructure
+- **Routing**: Control your ingress; requests still leave your infrastructure for Crazyrouter processing.
 
 ## 🔧 Nginx Reverse Proxy
 
@@ -23,8 +23,10 @@ server {
     ssl_certificate_key /etc/ssl/private/yourdomain.key;
 
     location / {
-        proxy_pass https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community;
+        proxy_pass https://crazyrouter.com;
         proxy_set_header Host crazyrouter.com;
+        proxy_ssl_server_name on;
+        proxy_ssl_name crazyrouter.com;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
@@ -38,6 +40,8 @@ server {
 ```
 
 ### With Rate Limiting
+
+Merge the location rule into the complete TLS server above; retain its certificate settings.
 ```nginx
 # Define rate limit zone
 limit_req_zone $binary_remote_addr zone=api:10m rate=30r/m;
@@ -48,8 +52,10 @@ server {
 
     location / {
         limit_req zone=api burst=10 nodelay;
-        proxy_pass https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community;
+        proxy_pass https://crazyrouter.com;
         proxy_set_header Host crazyrouter.com;
+        proxy_ssl_server_name on;
+        proxy_ssl_name crazyrouter.com;
         proxy_buffering off;
     }
 }
@@ -62,8 +68,10 @@ location / {
     allow 192.168.0.0/16;
     deny all;
 
-    proxy_pass https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community;
+    proxy_pass https://crazyrouter.com;
     proxy_set_header Host crazyrouter.com;
+        proxy_ssl_server_name on;
+        proxy_ssl_name crazyrouter.com;
     proxy_buffering off;
 }
 ```
@@ -75,7 +83,9 @@ location / {
 export default {
   async fetch(request) {
     const url = new URL(request.url);
+    url.protocol = "https:";
     url.hostname = "crazyrouter.com";
+    url.port = "";
 
     const newRequest = new Request(url, {
       method: request.method,
@@ -89,11 +99,18 @@ export default {
 ```
 
 ### With API Key Injection
+
+Set `CRAZYROUTER_KEY` and a separate `PROXY_ACCESS_TOKEN` as Worker secrets. Clients must send the proxy token; never expose an unauthenticated proxy backed by your paid API key.
 ```javascript
 export default {
   async fetch(request, env) {
+    if (!env.PROXY_ACCESS_TOKEN || request.headers.get("Authorization") !== `Bearer ${env.PROXY_ACCESS_TOKEN}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
     const url = new URL(request.url);
+    url.protocol = "https:";
     url.hostname = "crazyrouter.com";
+    url.port = "";
 
     const headers = new Headers(request.headers);
     headers.set("Authorization", `Bearer ${env.CRAZYROUTER_KEY}`);
@@ -115,9 +132,11 @@ services:
   proxy:
     image: nginx:alpine
     ports:
-      - "8080:80"
+      - "8443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/ssl/certs:ro
+      - ./private:/etc/ssl/private:ro
     restart: unless-stopped
 ```
 
@@ -130,9 +149,8 @@ A: No, you can use Crazyrouter directly. Proxy is optional for custom domains or
 A: Yes, make sure `proxy_buffering off` is set in Nginx.
 
 ## 🔗 Links
-- 🌐 [Crazyrouter](https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community?ref=github)
+- 🌐 [Crazyrouter](https://crazyrouter.com?utm_source=github&utm_medium=github&utm_campaign=dev_community)
 - 💬 [Telegram](https://t.me/crzrouter)
 
 ## 📄 License
 MIT
-
